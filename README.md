@@ -1,5 +1,9 @@
 # PACE
 
+<p align="center">
+  <img src="docs/assets/pace_core_idea.gif" alt="PACE core idea: audio streams in, RED turns cell scores into onset, offset and presence, and an event is committed once its offset plus the look-ahead L has been heard" width="720">
+</p>
+
 **PACE** is a bounded-latency streaming event-level sound event detector. It
 extends the one-pass detector of Venkatesh, Moffat and Miranda (Applied
 Sciences, 2022) with a causal backbone, RED + onset/offset + event proposals,
