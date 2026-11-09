@@ -156,3 +156,6 @@ pod_sync/
 
 # local credentials
 data/*cookies*.txt
+
+# mkdocs build output
+site/

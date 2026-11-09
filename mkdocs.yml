@@ -1,0 +1,35 @@
+site_name: PACE
+site_description: Causal versus bidirectional CRNN sound event detection with bounded look-ahead.
+site_url: https://lakoreai.github.io/pace/
+repo_url: https://github.com/LakoreAI/pace
+repo_name: LakoreAI/pace
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle: {icon: material/weather-night, name: Dark mode}
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle: {icon: material/weather-sunny, name: Light mode}
+
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - Data: data.md
+  - Models and configs: models.md
+  - Streaming evaluation: streaming.md
+  - Results: results.md
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc: {permalink: true}
+  - pymdownx.highlight
+  - pymdownx.superfences
