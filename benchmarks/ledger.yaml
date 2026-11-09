@@ -1,0 +1,170 @@
+# Benchmark ledger: reference results and the protocol each one was reported under.
+# A number is admitted only with release, split, metric, supervision and
+# protocol stated. Tier M = matched; E = more capacity/pretraining/external
+# data; X = different task/split/metric (never in the main comparison table).
+#
+# Our own results are written with a `benchmark: {id: <key>, ...}` block; the
+# comparison script only matches results to the same benchmark id and metric.
+
+version: 1
+# "One-pass detector" below is the external baseline (Venkatesh et al. 2022); our model is PACE.
+as_of: "2026-10-31"
+
+benchmarks:
+  tut2017:
+    dataset: TUT Sound Events 2017
+    release: DCASE 2017 Task 3
+    split: official 4-fold CV
+    metric: error_rate
+    direction: min
+    metric_label: Segment error rate
+    time_resolution: 1.0
+    class_count: 6
+    supervision: strong
+    aliases: [tut2017]
+    entries:
+      - system: One-pass detector (original)
+        value: 0.75
+        tier: M
+        source: arXiv:2109.00962
+        conditions: reproduction floor; 1 s segment ER
+      - system: DCASE 2017 best evaluation submission (Adavanne2017 Ash_1)
+        value: 0.7914
+        tier: M
+        source: https://dcase.community/challenge2017/task-sound-event-detection-in-real-life-audio-results
+        conditions: official evaluation submission; different CV/reproduction setup, present separately
+
+  urbansed:
+    dataset: URBAN-SED v2
+    release: URBAN-SED v2.0.0
+    split: predefined 6k/2k/2k
+    metric: f_measure
+    direction: max
+    metric_label: Macro segment F1
+    scale: 100
+    time_resolution: 1.0
+    class_count: 10
+    supervision: strong
+    aliases: [urbansed]
+    entries:
+      - system: One-pass detector (original)
+        value: 59.5
+        tier: M
+        source: arXiv:2109.00962
+      - system: CNN (original paper control)
+        value: 56.88
+        tier: M
+        source: arXiv:2109.00962
+      - system: CRNN (original paper control)
+        value: 55.96
+        tier: M
+        source: arXiv:2109.00962
+      - system: CDur + all augmentation
+        value: 64.75
+        tier: E
+        source: arXiv:2101.07687
+        conditions: CRNN; weak-label-oriented recipe and double/triple thresholding
+      - system: SEDT-AQ-FT-P3
+        value: 65.77
+        tier: E
+        source: arXiv:2110.02011
+        conditions: ResNet-50 + 3+3 Transformer
+      - system: SEDT-AQ-FT-P1
+        value: 65.21
+        tier: E
+        source: arXiv:2110.02011
+      - system: LEAD human-disagreement score
+        value: 72.76
+        tier: X
+        source: arXiv:2410.09778
+        conditions: annotator disagreement on 60 clips, not a trained detector
+
+  music_speech:
+    dataset: MuSpeak plus synthetic radio
+    release: Venkatesh et al. 2022 in-house protocol
+    split: in-house (includes non-shareable BBC Radio Devon)
+    metric: f_measure
+    direction: max
+    metric_label: Overall F1, 10 ms segments
+    scale: 100
+    time_resolution: 0.01
+    class_count: 2
+    supervision: strong
+    aliases: [music_speech]
+    entries:
+      - system: One-pass detector (original)
+        value: 97.22
+        tier: X
+        source: arXiv:2109.00962
+        conditions: test includes 4 h BBC Radio Devon; not reproducible as a public benchmark
+      - system: CRNN (same paper)
+        value: 96.79
+        tier: X
+        source: arXiv:2109.00962
+        conditions: same inaccessible mixture
+
+  voice:
+    dataset: VOICe
+    release: Zenodo 3514950
+    split: source-to-target transfer at -9 dB
+    metric: f_measure
+    direction: max
+    metric_label: F1 mean +/- std
+    scale: 100
+    class_count: 3
+    supervision: strong
+    aliases: [voice]
+    entries: []  # transcribe exact per-source rows before admitting numbers
+
+  desed:
+    dataset: DESED
+    release: DCASE Task 4 (freeze exact year before running)
+    split: official public/evaluation
+    metric: psds1
+    direction: max
+    metric_label: PSDS1
+    class_count: 10
+    supervision: synthetic+weak+unlabelled
+    aliases: [desed]
+    entries: []  # no rule-matched numeric rows admitted yet
+    notes: >
+      Freeze the DESED release, external-data rules, split and PSDS scenario in
+      a dedicated config before entering numbers. Matched M baseline is the
+      MobileNetV3+context frame-wise arm; large AST/ATST/BEATs systems are E.
+
+  audioset_strong:
+    dataset: AudioSet Strong
+    release: Google temporal-label release
+    split: AS-Strong-10 first, then full retained classes
+    metric: psds1
+    direction: max
+    metric_label: PSDS1
+    class_count: 10
+    supervision: strong (weak-label pretraining in E rows)
+    aliases: [audioset_strong, audioset_strong10]
+    entries:
+      - system: AS-Strong-10 CRNN + RED/EPN
+        value: 48.0
+        tier: E
+        source: arXiv:2601.04178
+        conditions: 10 short-duration classes; 1.4M CRNN + 260K class GRUs; no transformer pretraining
+      - system: AS-Strong-10 MobileNetV3+GRU + RED/EPN
+        value: 49.5
+        tier: E
+        source: arXiv:2601.04178
+        conditions: AudioSet weak-label pretraining
+      - system: AS-Strong-10 ATST-F + RED/EPN
+        value: 56.6
+        tier: E
+        source: arXiv:2601.04178
+        conditions: about 90M Transformer backbone, AudioSet pretraining
+      - system: Full AS-Strong (447 classes) BEATs + RED/EPN
+        value: 49.6
+        tier: E
+        source: arXiv:2601.04178
+        conditions: about 90M backbone + 4.1M EPN; no class-variance penalty in PSDS1
+      - system: Full AS-Strong previous distillation reference
+        value: 46.5
+        tier: E
+        source: arXiv:2601.04178
+        conditions: 15-transformer ensemble knowledge distillation

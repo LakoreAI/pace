@@ -1,0 +1,59 @@
+# Causal RED + onset/offset + event-proposal head on URBAN-SED, evaluated under
+# bounded look-ahead. Shares the data, optimization and callback keys with
+# configs/urbansed_causal.yaml; only the head-specific keys are annotated.
+
+data_root: data/features/urbansed
+train_file: train.npz
+val_file: val.npz
+test_file: test.npz
+seed: 1
+dataset: urbansed
+experiment: stream_red_epn
+ckpt_dir: checkpoints
+result_dir: results
+epochs: 80
+batch_size: 32
+num_workers: 0
+pin_memory: true
+amp: true
+amp_dtype: bf16
+lr: 0.001
+log_every: 50
+eval_every: 1
+ckpt_every: 10
+
+target_kind: red_epn
+arch:
+  head: red_epn
+  causal: true
+  epn_type: conv                    # conv = dilated Conv1d proposal network; gru = bidirectional-GRU reference
+  epn_hidden: 64
+  epn_layers: 2
+  epn_kernel: 3
+loss:
+  type: red_epn
+  lambda_ool: 100.0                 # weight of the onset/offset loss
+  lambda_iou: 1.0                   # weight of the proposal IoU loss
+  focal_alpha: 2.0
+decoder:
+  type: red_epn
+  threshold: 0.5                    # proposal score threshold
+  iou_threshold: 0.5                # NMS overlap threshold between proposals
+  k: 15                             # max proposals kept per window
+postprocess: {threshold: 0.5, merge_gap: 0.0}
+time_resolution: 1.0
+eval_batch_size: 64
+psds: {enabled: true, event_collar: 0.2}
+streaming:
+  enabled: true
+  lookaheads: [0.0, 0.1, 0.25, 0.5, 1.0]   # seconds; fix these before running, do not tune on the test split
+profile: true
+profile_repeats: 20
+recipe: {filter_augment: {p: 0.5}, freq_mixstyle: {p: 0.5}}
+lr_scheduler: {type: plateau, mode: min, monitor: error_rate, factor: 0.5, patience: 5}
+early_stopping: {enabled: true, monitor: error_rate, mode: min, patience: 25}
+save_best: true
+best_metric: error_rate
+best_mode: min
+wandb: {enabled: false}
+benchmark: {id: urbansed, release: "URBAN-SED v2.0.0", split: predefined, metric: f_measure, supervision: strong}

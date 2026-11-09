@@ -1,0 +1,74 @@
+# Causal CRNN with a frame-wise head on URBAN-SED, plus per-cell streaming evaluation.
+# This is the model family the paper trains: swap `causal`, `lookahead_frames`,
+# `n_cells`/`output_stride` and `context` to move between the variants below.
+
+# --- data ---
+data_root: data/features/urbansed
+train_file: train.npz
+val_file: val.npz
+test_file: test.npz
+seed: 1
+
+dataset: urbansed
+experiment: causal_c63
+ckpt_dir: checkpoints
+result_dir: results
+
+# --- optimization ---
+epochs: 80
+batch_size: 64
+num_workers: 0
+pin_memory: true
+amp: true
+amp_dtype: bf16
+lr: 0.001
+log_every: 50
+eval_every: 10
+ckpt_every: 10
+
+# --- output grid ---
+n_cells: 63                         # output cells per 10 s clip (63 -> 160 ms cells, 126 -> 80 ms)
+target_kind: framewise              # framewise | onepass | red_epn
+
+# --- model ---
+arch:
+  backbone: crnn
+  context: gru                      # gru = recurrent over time; gru_lc = limited-future GRU (see context_future_cells)
+  head: framewise
+  causal: true                      # false gives the bidirectional (non-causal) reference
+  output_stride: 16                 # input frames per output cell; must match n_cells (8 for 126 cells)
+  crnn_channels: [64, 128, 128, 256]  # channels per conv block
+  crnn_pools: [2, 2, 2, 2]          # pooling per block (time and frequency)
+  lookahead_frames: 25              # input frames of future audio a causal model may see (25 ~ 0.25 s); 0 = strictly causal
+  crnn_dropout: 0.1
+  context_hidden: 128               # GRU width; 72 gives a parameter-matched bidirectional reference
+  context_layers: 2
+  # context_future_cells: 6         # only for context: gru_lc; future cells the backward GRU sees per layer
+  # causal_pool_freq_ceil: true     # round the frequency pooling up instead of down (wider frequency axis)
+
+loss: {type: bce}
+decoder: {type: framewise, median_lengths: 3}   # median filter length(s) in cells
+postprocess: {threshold: 0.5, merge_gap: 0.0}
+time_resolution: 1.0
+eval_batch_size: 64
+
+# --- evaluation extras ---
+psds: {enabled: false, event_collar: 0.2}       # true adds PSDS1/PSDS2 and event-F1 (needs sed_scores_eval)
+streaming:
+  enabled: true
+  lookaheads: [0.0, 0.25]           # seconds of look-ahead to evaluate at test time
+profile: true
+profile_repeats: 20
+
+# --- training recipe ---
+recipe:
+  filter_augment: {p: 0.5}          # random spectral filtering, probability per example
+  freq_mixstyle: {p: 0.5}           # frequency-wise MixStyle, probability per batch
+lr_scheduler: {type: warmup_cosine_epochs, t_max: 80, warmup_epochs: 5}
+early_stopping: {enabled: true, monitor: error_rate, mode: min, patience: 20, min_epochs: 40}
+save_best: true
+best_metric: error_rate
+best_mode: min
+wandb: {enabled: false}
+
+benchmark: {id: urbansed, release: "URBAN-SED v2.0.0", split: predefined, metric: f_measure, supervision: strong}

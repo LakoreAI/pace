@@ -1,0 +1,72 @@
+# One-pass baseline on TUT Sound Events 2017 (one cross-validation fold).
+# Same layout as configs/onepass_urbansed.yaml; only the keys that differ are
+# annotated here.
+
+# --- data ---
+# Build each fold with `scripts/data/extract_features.py --dataset tut2017 --fold N`.
+data_root: data/features/tut2017_fold1   # change the fold number to run another fold
+train_file: train.npz
+val_file: val.npz                        # file-level hold-out of the fold's training files
+test_file: test.npz                      # the fold's evaluation files; never used for selection
+seed: 42
+
+# --- output ---
+ckpt_dir: checkpoints
+result_dir: results
+run_name: null
+experiment: onepass
+dataset: null
+
+# --- optimization ---
+epochs: 1000
+batch_size: 32
+accum_steps: 1
+num_workers: 0
+pin_memory: true
+amp: false
+amp_dtype: bf16
+lr: 0.001
+weight_decay: 0.0
+log_every: 50
+eval_every: 1
+ckpt_every: 50
+
+arch: null
+
+# --- decoding and metric ---
+spec_augment:
+  freq_param: 8                     # max width (mel bins) of a frequency mask
+  freq_mask_num: 1                  # frequency masks per batch
+  time_param: 25                    # max width (frames) of a time mask
+  time_mask_num: 2                  # time masks per batch
+postprocess: {threshold: 0.5, merge_gap: 1.0, end_mode: notebook}
+time_resolution: 1.0
+eval_batch_size: 64
+
+# --- callbacks ---
+lr_scheduler: null
+early_stopping:
+  enabled: true
+  monitor: error_rate
+  mode: min
+  patience: 100
+save_best: true
+best_metric: error_rate
+best_mode: min
+
+wandb:
+  enabled: false
+  project: pace
+  entity: null
+  group: tut2017
+  monitor: error_rate
+  mode: min
+  log_artifacts: false
+
+profile: true
+benchmark:
+  id: tut2017
+  release: "DCASE 2017 Task 3"
+  split: "official 4-fold CV"
+  metric: error_rate
+  supervision: "strong"

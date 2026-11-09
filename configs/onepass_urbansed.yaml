@@ -1,0 +1,76 @@
+# One-pass baseline on URBAN-SED (predefined train/val/test splits).
+# Start here for a first run. Every key below can also be overridden on the
+# command line, e.g. `--epochs 50 --seed 3`.
+
+# --- data ---
+# Caches built by `scripts/data/extract_features.py --dataset urbansed`.
+data_root: data/features/urbansed   # folder holding the .npz caches
+train_file: train.npz
+val_file: val.npz                   # used for checkpoint selection and early stopping only
+test_file: test.npz                 # scored once, with the best checkpoint
+seed: 42                            # change for multi-seed runs; logged in the result JSON
+
+# --- output ---
+ckpt_dir: checkpoints               # best.pt / last.pt / epoch_*.pt go to <ckpt_dir>/<run_name>/
+result_dir: results                 # <experiment>_<dataset>_s<seed>.json is written here
+run_name: null                      # null = derived from experiment, dataset and seed
+experiment: onepass                 # name prefix of the result file
+dataset: null                       # null = basename of data_root
+
+# --- optimization ---
+epochs: 1000                        # upper bound; early stopping usually ends the run first
+batch_size: 32
+accum_steps: 1                      # gradient accumulation; effective batch = batch_size * accum_steps
+num_workers: 0                      # DataLoader workers; raise on Linux boxes with spare CPUs
+pin_memory: true
+amp: false                          # true = mixed precision (faster, slightly different numbers)
+amp_dtype: bf16                     # bf16 or fp16 (only used when amp: true)
+lr: 0.001
+weight_decay: 0.0
+log_every: 50                       # steps between training-loss log lines
+eval_every: 1                       # epochs between validation passes
+ckpt_every: 50                      # epochs between epoch_<n>.pt snapshots
+
+# --- model ---
+# null keeps the defaults in src/config.py (PACEConfig). Put overrides here,
+# e.g. arch: {backbone: crnn, causal: true}. See configs/urbansed_causal.yaml.
+arch: null
+
+# --- decoding and metric ---
+spec_augment: null                  # {freq_param, freq_mask_num, time_param, time_mask_num}; null = off
+postprocess:
+  threshold: 0.5                    # probability threshold for an active class
+  merge_gap: 1.0                    # seconds; same-class events closer than this are merged (0 = no merging)
+  end_mode: notebook                # how the last event of a file is closed
+time_resolution: 1.0                # seconds per scored segment (sed_eval segment F / ER)
+eval_batch_size: 64
+
+# --- callbacks ---
+lr_scheduler: null                  # e.g. {type: plateau, mode: min, monitor: error_rate, factor: 0.5, patience: 5}
+early_stopping:
+  enabled: true
+  monitor: error_rate               # validation metric to watch
+  mode: min                         # min for error_rate, max for f_measure
+  patience: 100                     # epochs without improvement before stopping
+save_best: true
+best_metric: error_rate
+best_mode: min
+
+wandb:
+  enabled: false                    # true needs `uv sync --extra wandb` and WANDB_API_KEY in .env
+  project: pace
+  entity: null
+  group: urbansed
+  monitor: error_rate
+  mode: min
+  log_artifacts: false
+
+profile: true                       # record params, MACs and latency in the result JSON
+
+# Identifies the protocol so results are only compared with the same benchmark.
+benchmark:
+  id: urbansed
+  release: "URBAN-SED v2.0.0"
+  split: "predefined 6k/2k/2k"
+  metric: f_measure
+  supervision: "strong"

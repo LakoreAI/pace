@@ -1,0 +1,14 @@
+# Benchmark matrix for scripts/benchmarks/run_matrix.py. Each entry runs one
+# config over several seeds; finished runs (existing result JSON) are skipped.
+#   uv run python scripts/benchmarks/run_matrix.py --matrix configs/benchmarks/matrix_example.yaml --workers 2
+benchmarks:
+  - id: urbansed_onepass
+    config: configs/onepass_urbansed.yaml    # training config to run
+    data_root: data/features/urbansed        # overrides data_root in the config
+    dataset: urbansed                        # tag used in the result file name
+    seeds: [1, 2, 3]                         # one run per seed
+  - id: urbansed_causal
+    config: configs/urbansed_causal.yaml
+    data_root: data/features/urbansed
+    dataset: urbansed
+    seeds: [1, 2, 3]
